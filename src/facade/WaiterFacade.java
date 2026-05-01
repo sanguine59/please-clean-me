@@ -1,7 +1,5 @@
 package facade;
 
-import java.util.ArrayList;
-import java.util.List;
 import factory.ChefFactory;
 import factory.WaiterFactory;
 import mediator.RestaurantMediator;
@@ -11,14 +9,17 @@ import model.Waiter;
 import singleton.Restaurant;
 
 public class WaiterFacade {
-	Restaurant scoreboard = Restaurant.getInstance();
-	RestaurantMediator mediator = new RestaurantMediator();
-    WaiterFactory waiterFactory = new WaiterFactory();
-    ChefFactory chefFactory = new ChefFactory();
-    List<Waiter> waiters = new ArrayList<>();
-	List<Chef> chefs = new ArrayList<>();
-	List<Customer> seats = new ArrayList<>();
-	
+    private RestaurantMediator mediator;
+    private List<Waiter> waiters;
+    private WaiterFactory waiterFactory;
+    private Restaurant scoreboard = Restaurant.getInstance();
+
+    public WaiterFacade(GameFacade game) {
+        this.mediator = game.getMediator();
+        this.waiters = game.getWaiters();
+        this.waiterFactory = game.getWaiterFactory();
+    }
+
 	public boolean hireNewWaiter() {
 		int cost = waiters.size() * 150;
 		

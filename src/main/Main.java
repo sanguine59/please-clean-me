@@ -10,7 +10,10 @@ import model.Waiter;
 import singleton.Restaurant;
 
 public class Main {
-	Facade facade = new Facade(this);
+    GameFacade game = new GameFacade();
+
+    ChefFacade chefFacade = new ChefFacade(game);
+    WaiterFacade waiterFacade = new WaiterFacade(game);
 	Scanner scan = new Scanner(System.in);
 	
 	public Main() {

@@ -26,7 +26,10 @@ public class GameFacade {
 	List<Customer> seats = new ArrayList<>();
 	int maxSeats = 4;
 	Random random = new Random();
-	Main main;
+	
+	public GameFacade(Main main) {
+    this.main = main;
+}
 	
 	public void startGame(String resturantName) {
 		scoreboard.setName(resturantName);
@@ -102,7 +105,7 @@ public class GameFacade {
 	private void display() {
 		System.out.println("\n\n\n");
         System.out.println("Restaurant: " + scoreboard.getName());
-        System.out.println("Score: " + scoreboard.getScore());
+        System.out.println("Score: " + scoreboard.getScore());		
         System.out.println("Money: Rp." + scoreboard.getMoney());
         System.out.println("--- Waiters ---");
         waiters.forEach(w -> System.out.println(w.getName() + " " + w.getCurrentAction()));
@@ -111,4 +114,24 @@ public class GameFacade {
         System.out.println("--- Customers ---");
         seats.forEach(c -> System.out.println(c.getName() + " (" + c.getTolerance() + ") " + c.getCurrentAction()));
     }
+
+	public RestaurantMediator getMediator() {
+    return mediator;
+	}
+
+	public List<Chef> getChefs() {
+		return chefs;
+	}
+
+	public List<Waiter> getWaiters() {
+		return waiters;
+	}
+
+	public ChefFactory getChefFactory() {
+		return chefFactory;
+	}
+
+	public WaiterFactory getWaiterFactory() {
+		return waiterFactory;
+	}
 }
