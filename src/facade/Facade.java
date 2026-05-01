@@ -39,7 +39,6 @@ public class Facade {
 		mediator.resumeSimulation();
 	}
 	
-	
 	public void startGame(String resturantName) {
 		scoreboard.setName(resturantName);
 		startingStaff(2, 2);
@@ -186,6 +185,4 @@ public class Facade {
         System.out.println("--- Customers ---");
         seats.forEach(c -> System.out.println(c.getName() + " (" + c.getTolerance() + ") " + c.getCurrentAction()));
     }
-
-	
 }
