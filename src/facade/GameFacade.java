@@ -26,9 +26,14 @@ public class GameFacade {
 	List<Customer> seats = new ArrayList<>();
 	int maxSeats = 4;
 	Random random = new Random();
-	
+	private Main main;
+	private ChefFacade chefFacade;
+	private WaiterFacade waiterFacade;
+
 	public GameFacade(Main main) {
-    this.main = main;
+		this.main = main;
+		chefFacade = new ChefFacade(this);
+		waiterFacade = new WaiterFacade(this);
 }
 	
 	public void startGame(String resturantName) {
@@ -116,7 +121,7 @@ public class GameFacade {
     }
 
 	public RestaurantMediator getMediator() {
-    return mediator;
+    	return mediator;
 	}
 
 	public List<Chef> getChefs() {
@@ -133,5 +138,29 @@ public class GameFacade {
 
 	public WaiterFactory getWaiterFactory() {
 		return waiterFactory;
+	}
+
+	public Restaurant getScoreboard() {
+    	return scoreboard;
+	}
+
+	public int getMaxSeats() {
+		return maxSeats;
+	}
+
+	public boolean hireNewChef() {
+    return chefFacade.hireNewChef();
+	}
+
+	public boolean hireNewWaiter() {
+		return waiterFacade.hireNewWaiter();
+	}
+
+	public boolean upgradeChef(int index, String stat) {
+		return chefFacade.upgradeChef(index, stat);
+	}
+
+	public boolean upgradeWaiterSpeed(int index) {
+		return waiterFacade.upgradeWaiterSpeed(index);
 	}
 }

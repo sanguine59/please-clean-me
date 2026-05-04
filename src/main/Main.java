@@ -4,16 +4,16 @@ import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
-import facade.Facade;
+import facade.GameFacade;
+import facade.ChefFacade;
+import facade.WaiterFacade;
+
 import model.Chef;
 import model.Waiter;
 import singleton.Restaurant;
 
 public class Main {
-    GameFacade game = new GameFacade();
-
-    ChefFacade chefFacade = new ChefFacade(game);
-    WaiterFacade waiterFacade = new WaiterFacade(game);
+    GameFacade game = new GameFacade(this);
 	Scanner scan = new Scanner(System.in);
 	
 	public Main() {
@@ -35,7 +35,7 @@ public class Main {
                 System.out.println("Enter Restaurant Name [3-15 characters]:");
                 String name = scan.nextLine();
                 if (name.length() > 2 && name.length() < 16) {
-                    facade.startGame(name);
+                    game.startGame(name);
                     return; // Exit main menu thread, game runs in background
                 } else {
                     System.out.println("Please Enter A Valid Name");
@@ -60,7 +60,7 @@ public class Main {
 	}
 
     public void pauseGame() {
-        facade.pauseGame();
+        game.pauseGame();
         int choice;
         do {
             System.out.println("\n--- GAME PAUSED ---");
@@ -75,15 +75,15 @@ public class Main {
             if (choice == 3) System.exit(0);
 
         } while (true);
-        facade.resumeGame();
+        game.resumeGame();
 	}
     
     private void displayCurrentStatus() {
-        Restaurant sb = facade.getScoreboard();
+        Restaurant sb = game.getScoreboard();
         System.out.println("\nMoney: Rp." + sb.getMoney());
-        System.out.println("Seats: " + facade.getMaxSeats());
-        System.out.println("Waiters: " + facade.getWaiters().size());
-        System.out.println("Chefs: " + facade.getChefs().size());
+        System.out.println("Seats: " + game.getMaxSeats());
+        System.out.println("Waiters: " + game.getWaiters().size());
+        System.out.println("Chefs: " + game.getChefs().size());
         System.out.println("====================================\n");
     }
 
@@ -91,7 +91,7 @@ public class Main {
         int choice;
         do {
             displayCurrentStatus();
-            System.out.println("1. Increase Restaurant's Seat (Rp. " + (100 * facade.getMaxSeats()) + ')');
+            System.out.println("1. Increase Restaurant's Seat (Rp. " + (100 * game.getMaxSeats()) + ')');
             System.out.println("2. Hire New Employee");
             System.out.println("3. Upgrade Waiter");
             System.out.println("4. Upgrade Chef");
@@ -100,7 +100,7 @@ public class Main {
             choice = getIntInput();
 
             if (choice == 1) {
-                if (facade.increaseSeats()) System.out.println("Seats increased successfully!");
+                if (game.increaseSeats()) System.out.println("Seats increased successfully!");
                 else System.out.println("Failed to increase seats. Not enough money or at max capacity.");
             } else if (choice == 2) {
                 showHireMenu();
@@ -116,17 +116,17 @@ public class Main {
         int choice;
         do {
             displayCurrentStatus();
-            System.out.println("1. Hire New Waiter (Rp. " + (facade.getWaiters().size() * 150) + ") ");
-            System.out.println("2. Hire New Chef (Rp. " + (facade.getChefs().size() * 200) + ") ");
+            System.out.println("1. Hire New Waiter (Rp. " + (game.getWaiters().size() * 150) + ") ");
+            System.out.println("2. Hire New Chef (Rp. " + (game.getChefs().size() * 200) + ") ");
             System.out.println("3. Back");
             System.out.print("Input [1..3]: ");
             choice = getIntInput();
 
             if (choice == 1) {
-                if (facade.hireNewWaiter()) System.out.println("New waiter hired!");
+                if (game.hireNewWaiter()) System.out.println("New waiter hired!");
                 else System.out.println("Failed to hire waiter. Not enough money or at max capacity.");
             } else if (choice == 2) {
-                if (facade.hireNewChef()) System.out.println("New chef hired!");
+                if (game.hireNewChef()) System.out.println("New chef hired!");
                 else System.out.println("Failed to hire chef. Not enough money or at max capacity.");
             }
         } while (choice != 3);
@@ -134,7 +134,7 @@ public class Main {
 
     private void showUpgradeWaiterMenu() {
         int choice;
-        List<Waiter> waiters = facade.getWaiters();
+        List<Waiter> waiters = game.getWaiters();
         do {
             System.out.println("\n--- Upgrade Waiter (Cost: Rp. 150) ---");
             for (int i = 0; i < waiters.size(); i++) {
@@ -144,7 +144,7 @@ public class Main {
             choice = getIntInput();
 
             if (choice > 0 && choice <= waiters.size()) {
-                if (facade.upgradeWaiterSpeed(choice - 1)) System.out.println("Upgrade successful!");
+                if (game.upgradeWaiterSpeed(choice - 1)) System.out.println("Upgrade successful!");
                 else System.out.println("Upgrade failed. Not enough money or waiter is max speed.");
             }
         } while (choice != 0);
@@ -152,7 +152,7 @@ public class Main {
 
     private void showUpgradeChefMenu() {
         int choice;
-        List<Chef> chefs = facade.getChefs();
+        List<Chef> chefs = game.getChefs();
         do {
             System.out.println("\n--- Upgrade Chef (Cost: Rp. 150) ---");
             for (int i = 0; i < chefs.size(); i++) {
@@ -164,7 +164,7 @@ public class Main {
             if (choice > 0 && choice <= chefs.size()) {
                 System.out.print("Upgrade 'speed' or 'skill'?: ");
                 String stat = scan.nextLine();
-                if (facade.upgradeChef(choice - 1, stat)) System.out.println("Upgrade successful!");
+                if (game.upgradeChef(choice - 1, stat)) System.out.println("Upgrade successful!");
                 else System.out.println("Upgrade failed. Invalid stat, not enough money, or chef is max level.");
             }
         } while (choice != 0);

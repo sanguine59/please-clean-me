@@ -7,6 +7,7 @@ import model.Chef;
 import model.Customer;
 import model.Waiter;
 import singleton.Restaurant;
+import java.util.List;
 
 public class WaiterFacade {
     private RestaurantMediator mediator;
