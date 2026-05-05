@@ -1,17 +1,12 @@
 package factory;
 
 import mediator.RestaurantMediator;
-import model.Customer;
+import model.Chef;
 import model.Npc;
-import singleton.NamePool;
 
-public class CustomerFactory implements NpcFactory {
-
+public class CustomerFactory extends BaseFactory{
 	@Override
-	public Npc createNpc(RestaurantMediator mediator) {
-		// TODO Auto-generated method stub
-		String name = NamePool.getInstance().addName();
-		return new Customer(name, mediator);
-	}
-	
+    public Npc createNpc(RestaurantMediator mediator) {
+        return new Chef(getRandomName(), mediator);
+    }
 }

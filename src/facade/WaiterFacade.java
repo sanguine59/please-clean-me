@@ -18,7 +18,7 @@ public class WaiterFacade {
     public WaiterFacade(GameFacade game) {
         this.mediator = game.getMediator();
         this.waiters = game.getWaiters();
-        this.waiterFactory = game.getWaiterFactory();
+        this.waiterFactory = new WaiterFactory();
     }
 
 	public boolean hireNewWaiter() {
