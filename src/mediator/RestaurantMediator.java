@@ -36,6 +36,7 @@ public class RestaurantMediator implements Observer {
     private final Queue<Waiter> idleWaiters = new LinkedList<>();
     private final Queue<Chef> idleChefs = new LinkedList<>();
     private final Object pauseLock = new Object();
+    private static final int BASE_REWARD = 30;
     
     public Object getPauseLock() {
 		return pauseLock;
@@ -92,25 +93,35 @@ public class RestaurantMediator implements Observer {
     
     @Override
     public synchronized void update(Object subject, Object event) {
-        if(subject instanceof Customer && event instanceof CustomerEvent) {
-        	Customer customer = (Customer) subject;
-        	CustomerEvent customerEvent = (CustomerEvent) event;
-        	if(customerEvent.getType() == CustomerEvent.CustomerEventType.REQUEST_ORDER) {
-        		if(!idleWaiters.isEmpty()) {
-        			Waiter waiter = idleWaiters.poll();
-        			assignWaiterAndCustomer(waiter, customer);
+        handleCustomerEvents(subject, event);
+        handleWaiterEvents(subject, event);
+        handleChefEvents(subject, event);
+    }
+
+	private void handleChefEvents(Object subject, Object event) {
+		if(subject instanceof Chef && event instanceof ChefEvent) {
+        	Chef chef = (Chef) subject;
+        	ChefEvent chefEvent = (ChefEvent) event;
+        	if(chefEvent.getType() == ChefEvent.ChefEventType.IDLE) {
+        		if(!waitingWaiters.isEmpty()) {
+        			Waiter waiter = waitingWaiters.poll();
+        			assignWaiterAndChef(waiter, chef);
         		} else {
-        			waitingCustomers.add(customer);
-        			
+        			idleChefs.add(chef);
         		}
-        	} else if(customerEvent.getType() == CustomerEvent.CustomerEventType.DONE_EATING) {
-        		// customer leave, implement later
-        		scoreboard.setScore(scoreboard.getScore() + (30 * customer.getAssignedChef().getSkill()));
-        		scoreboard.setMoney(scoreboard.getMoney() + (30 * customer.getAssignedChef().getSkill()));
-        		customer.setStateName("Done");
+        	} else if (chefEvent.getType() == ChefEvent.ChefEventType.START_COOKING){
+        		chef.getAssignedCustomer().setState(new CustomerFoodBeingCookState(chef.getAssignedCustomer()));
+        	} else if(chefEvent.getType() == ChefEvent.ChefEventType.IS_COOKING) {
+        		
+        	} else if(chefEvent.getType() == ChefEvent.ChefEventType.COOKING_DONE) {
+        		chef.getAssignedWaiter().setState(new WaiterBringFoodState(chef.getAssignedWaiter()));
+        		chef.setState(new ChefIdleState(chef));
         	}
         }
-        if(subject instanceof Waiter && event instanceof WaiterEvent) {
+	}
+
+	private void handleWaiterEvents(Object subject, Object event) {
+		if(subject instanceof Waiter && event instanceof WaiterEvent) {
         	Waiter waiter = (Waiter) subject;
         	WaiterEvent waiterEvent = (WaiterEvent) event;
         	if(waiterEvent.getType() == WaiterEvent.WaiterEventType.IDLE) {
@@ -137,26 +148,28 @@ public class RestaurantMediator implements Observer {
         		waiter.getAssignedCustomer().setState(new CustomerFoodBeingServed(waiter.getAssignedCustomer()));
         	}
         }
-        if(subject instanceof Chef && event instanceof ChefEvent) {
-        	Chef chef = (Chef) subject;
-        	ChefEvent chefEvent = (ChefEvent) event;
-        	if(chefEvent.getType() == ChefEvent.ChefEventType.IDLE) {
-        		if(!waitingWaiters.isEmpty()) {
-        			Waiter waiter = waitingWaiters.poll();
-        			assignWaiterAndChef(waiter, chef);
+	}
+
+	private void handleCustomerEvents(Object subject, Object event) {
+		if(subject instanceof Customer && event instanceof CustomerEvent) {
+        	Customer customer = (Customer) subject;
+        	CustomerEvent customerEvent = (CustomerEvent) event;
+        	if(customerEvent.getType() == CustomerEvent.CustomerEventType.REQUEST_ORDER) {
+        		if(!idleWaiters.isEmpty()) {
+        			Waiter waiter = idleWaiters.poll();
+        			assignWaiterAndCustomer(waiter, customer);
         		} else {
-        			idleChefs.add(chef);
+        			waitingCustomers.add(customer);
+        			
         		}
-        	} else if (chefEvent.getType() == ChefEvent.ChefEventType.START_COOKING){
-        		chef.getAssignedCustomer().setState(new CustomerFoodBeingCookState(chef.getAssignedCustomer()));
-        	} else if(chefEvent.getType() == ChefEvent.ChefEventType.IS_COOKING) {
-        		
-        	} else if(chefEvent.getType() == ChefEvent.ChefEventType.COOKING_DONE) {
-        		chef.getAssignedWaiter().setState(new WaiterBringFoodState(chef.getAssignedWaiter()));
-        		chef.setState(new ChefIdleState(chef));
+        	} else if(customerEvent.getType() == CustomerEvent.CustomerEventType.DONE_EATING) {
+        		// customer leave, implement later
+        		scoreboard.setScore(scoreboard.getScore() + (BASE_REWARD * customer.getAssignedChef().getSkill()));
+        		scoreboard.setMoney(scoreboard.getMoney() + (BASE_REWARD * customer.getAssignedChef().getSkill()));
+        		customer.setStateName("Done");
         	}
         }
-    }
+	}
 
 	public boolean isPaused() {
 		return isPaused;
