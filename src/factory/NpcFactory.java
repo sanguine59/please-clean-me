@@ -4,5 +4,5 @@ import mediator.RestaurantMediator;
 import model.Npc;
 
 public interface NpcFactory {
-	public Npc createNpc(RestaurantMediator mediator);
+    Npc createNpc(RestaurantMediator mediator);
 }
