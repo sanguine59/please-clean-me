@@ -3,19 +3,28 @@ package state.customer;
 import model.Customer;
 
 public class CustomerPlacingOrderState implements CustomerState {
-	private Customer customer;
-	
+	private static final long POLL_MS = 100L;
+	private final Customer customer;
+
 	public CustomerPlacingOrderState(Customer customer) {
 		this.customer = customer;
 		display();
 	}
-	
+
 	@Override
 	public void display() {
-		// TODO Auto-generated method stub
 		customer.setCurrentAction("Ordering (" + customer.getAssignedWaiter().getName() + ')');
-		
 	}
-	
-	
+
+	@Override
+	public void handle(Customer customer) {
+		while (customer.getState() == this) {
+			try {
+				Thread.sleep(POLL_MS);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
+		}
+	}
 }

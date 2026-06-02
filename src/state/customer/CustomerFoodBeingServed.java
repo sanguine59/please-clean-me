@@ -3,15 +3,36 @@ package state.customer;
 import model.Customer;
 
 public class CustomerFoodBeingServed implements CustomerState {
-	private Customer customer;
+	private static final long INITIAL_WAIT_MS = 4000L;
+	private static final long POLL_MS = 100L;
+	private final Customer customer;
+
 	public CustomerFoodBeingServed(Customer customer) {
 		this.customer = customer;
 		display();
 	}
+
 	@Override
 	public void display() {
-		// TODO Auto-generated method stub
-		customer.setCurrentAction("Food being served (" + customer.getAssignedWaiter().getName() + ')');;
+		customer.setCurrentAction("Food being served (" + customer.getAssignedWaiter().getName() + ')');
 	}
 
+	@Override
+	public void handle(Customer customer) {
+		try {
+			Thread.sleep(INITIAL_WAIT_MS);
+			customer.setTolerance(customer.getTolerance() - 1);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return;
+		}
+		while (customer.getState() == this) {
+			try {
+				Thread.sleep(POLL_MS);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
+		}
+	}
 }

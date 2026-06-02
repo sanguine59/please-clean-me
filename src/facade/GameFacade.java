@@ -4,163 +4,149 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import factory.ChefFactory;
 import factory.CustomerFactory;
-import factory.WaiterFactory;
 import main.Main;
-import main.reader;
+import main.Reader;
 import mediator.RestaurantMediator;
 import model.Chef;
+import model.ChefStat;
 import model.Customer;
 import model.Waiter;
 import singleton.Restaurant;
 
 public class GameFacade {
-	Restaurant scoreboard = Restaurant.getInstance();
-	RestaurantMediator mediator = new RestaurantMediator();
-	CustomerFactory customerFactory = new CustomerFactory();
-	WaiterFactory waiterFactory = new WaiterFactory();
-	ChefFactory chefFactory = new ChefFactory();
-	List<Waiter> waiters = new ArrayList<>();
-	List<Chef> chefs = new ArrayList<>();
-	List<Customer> seats = new ArrayList<>();
-	int maxSeats = 4;
-	Random random = new Random();
-	private Main main;
-	private ChefFacade chefFacade;
-	private WaiterFacade waiterFacade;
+	public static final int INITIAL_SEATS = 4;
+	public static final int MAX_SEATS = 13;
+	public static final int SEAT_EXPANSION_UNIT_COST = 100;
+	public static final int CUSTOMER_SPAWN_CHANCE_PERCENT = 25;
+	public static final long GAME_TICK_MS = 1000L;
+	public static final int STARTING_WAITERS = 2;
+	public static final int STARTING_CHEFS = 2;
+
+	private final Restaurant scoreboard = Restaurant.getInstance();
+	private final RestaurantMediator mediator = new RestaurantMediator();
+	private final CustomerFactory customerFactory = new CustomerFactory();
+	private final StaffManager staff = new StaffManager(mediator);
+	private final List<Customer> seats = new ArrayList<>();
+	private final Random random = new Random();
+	private final Main main;
+	private int maxSeats = INITIAL_SEATS;
 
 	public GameFacade(Main main) {
 		this.main = main;
-		chefFacade = new ChefFacade(this);
-		waiterFacade = new WaiterFacade(this);
-}
-	
-	public void startGame(String resturantName) {
-		scoreboard.setName(resturantName);
-		startingStaff(2, 2);
-		
-		new Thread(new reader(mediator, main)).start();
+	}
+
+	public void startGame(String restaurantName) {
+		scoreboard.setName(restaurantName);
+		staff.seedStaff(STARTING_WAITERS, STARTING_CHEFS);
+
+		new Thread(new Reader(mediator, main)).start();
 		new Thread(this::mainGameLoop).start();
 	}
-	
-	private void startingStaff(int countWaiter, int countChef) {
-		for(int i = 0; i < countWaiter; i++) {
-			Waiter newWaiter = (Waiter) waiterFactory.createNpc(mediator);
-			waiters.add(newWaiter);
-			mediator.addWaiter(newWaiter);
-			new Thread(newWaiter).start();
-		}
-		for(int i = 0; i < countChef; i++) {
-			Chef newChef = (Chef) chefFactory.createNpc(mediator);
-			chefs.add(newChef);
-			mediator.addChef(newChef);
-			new Thread(newChef).start();
-		}
-	}
-	
-	private void mainGameLoop() {
-		while(true) {
-			synchronized(mediator.getPauseLock()) {
-				while(mediator.isPaused()) {
-					try {
-						mediator.getPauseLock().wait();
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-			}
-			
-			if (seats.size() < maxSeats && random.nextInt(100) < 25) {
-	            Customer newCustomer = (Customer) customerFactory.createNpc(mediator);
-	            seats.add(newCustomer);
-	            new Thread(newCustomer).start();
-	        }
-	        seats.removeIf(c -> "Done".equals(c.getStateName()));
-	        
-	        display();
-	
-	        try {
-	            Thread.sleep(1000);
-	        } catch (InterruptedException e) {
-	        	e.printStackTrace();
-	        }
-		}
-	}
-	
-	public boolean increaseSeats() {
-		int cost = 100 * maxSeats;
-		if(scoreboard.getMoney() < cost ) return false;
-		if(maxSeats >= 13) return false;
-		
-		
-		scoreboard.setMoney(scoreboard.getMoney() - cost);
-		maxSeats++;
-		return true;
-	}
-	
+
 	public void pauseGame() {
 		mediator.pauseSimulation();
 	}
+
 	public void resumeGame() {
 		mediator.resumeSimulation();
 	}
-	
-	private void display() {
-		System.out.println("\n\n\n");
-        System.out.println("Restaurant: " + scoreboard.getName());
-        System.out.println("Score: " + scoreboard.getScore());		
-        System.out.println("Money: Rp." + scoreboard.getMoney());
-        System.out.println("--- Waiters ---");
-        waiters.forEach(w -> System.out.println(w.getName() + " " + w.getCurrentAction()));
-        System.out.println("--- Chefs ---");
-        chefs.forEach(c -> System.out.println(c.getName() + " " + c.getCurrentAction()));
-        System.out.println("--- Customers ---");
-        seats.forEach(c -> System.out.println(c.getName() + " (" + c.getTolerance() + ") " + c.getCurrentAction()));
-    }
-
-	public RestaurantMediator getMediator() {
-    	return mediator;
-	}
-
-	public List<Chef> getChefs() {
-		return chefs;
-	}
-
-	public List<Waiter> getWaiters() {
-		return waiters;
-	}
-
-	public ChefFactory getChefFactory() {
-		return chefFactory;
-	}
-
-	public WaiterFactory getWaiterFactory() {
-		return waiterFactory;
-	}
 
 	public Restaurant getScoreboard() {
-    	return scoreboard;
+		return scoreboard;
 	}
 
 	public int getMaxSeats() {
 		return maxSeats;
 	}
 
-	public boolean hireNewChef() {
-    return chefFacade.hireNewChef();
+	public List<Waiter> getWaiters() {
+		return staff.getWaiters();
+	}
+
+	public List<Chef> getChefs() {
+		return staff.getChefs();
+	}
+
+	public int seatExpansionCost() {
+		return SEAT_EXPANSION_UNIT_COST * maxSeats;
+	}
+
+	public int waiterHireCost() {
+		return staff.waiterHireCost();
+	}
+
+	public int chefHireCost() {
+		return staff.chefHireCost();
+	}
+
+	public boolean increaseSeats() {
+		int cost = seatExpansionCost();
+		if (scoreboard.getMoney() < cost) return false;
+		if (maxSeats >= MAX_SEATS) return false;
+
+		scoreboard.setMoney(scoreboard.getMoney() - cost);
+		maxSeats++;
+		return true;
 	}
 
 	public boolean hireNewWaiter() {
-		return waiterFacade.hireNewWaiter();
+		return staff.hireNewWaiter();
 	}
 
-	public boolean upgradeChef(int index, String stat) {
-		return chefFacade.upgradeChef(index, stat);
+	public boolean hireNewChef() {
+		return staff.hireNewChef();
 	}
 
 	public boolean upgradeWaiterSpeed(int index) {
-		return waiterFacade.upgradeWaiterSpeed(index);
+		return staff.upgradeWaiterSpeed(index);
+	}
+
+	public boolean upgradeChef(int index, ChefStat stat) {
+		return staff.upgradeChef(index, stat);
+	}
+
+	private void mainGameLoop() {
+		while (true) {
+			synchronized (mediator.getPauseLock()) {
+				while (mediator.isPaused()) {
+					try {
+						mediator.getPauseLock().wait();
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						return;
+					}
+				}
+			}
+
+			if (seats.size() < maxSeats && random.nextInt(100) < CUSTOMER_SPAWN_CHANCE_PERCENT) {
+				Customer newCustomer = (Customer) customerFactory.createNpc(mediator);
+				seats.add(newCustomer);
+				new Thread(newCustomer).start();
+			}
+			seats.removeIf(Customer::isDone);
+
+			display();
+
+			try {
+				Thread.sleep(GAME_TICK_MS);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
+		}
+	}
+
+	private void display() {
+		System.out.println("\n\n\n");
+		System.out.println("Restaurant: " + scoreboard.getName());
+		System.out.println("Score: " + scoreboard.getScore());
+		System.out.println("Money: Rp." + scoreboard.getMoney());
+		System.out.println("--- Waiters ---");
+		getWaiters().forEach(w -> System.out.println(w.getName() + " " + w.getCurrentAction()));
+		System.out.println("--- Chefs ---");
+		getChefs().forEach(c -> System.out.println(c.getName() + " " + c.getCurrentAction()));
+		System.out.println("--- Customers ---");
+		seats.forEach(c -> System.out.println(c.getName() + " (" + c.getTolerance() + ") " + c.getCurrentAction()));
 	}
 }

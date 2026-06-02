@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import main.Main;
 import model.Chef;
 import model.Customer;
 import model.Waiter;
@@ -13,7 +12,6 @@ import observer.Observer;
 import observer.event.ChefEvent;
 import observer.event.CustomerEvent;
 import observer.event.WaiterEvent;
-import observer.event.WaiterEvent.WaiterEventType;
 import singleton.Restaurant;
 import state.chef.ChefCookState;
 import state.chef.ChefIdleState;
@@ -23,152 +21,152 @@ import state.customer.CustomerPlacingOrderState;
 import state.customer.CustomerWaitingForFoodState;
 import state.waiter.WaiterBringFoodState;
 import state.waiter.WaiterBringOrderState;
-import state.waiter.WaiterIdleState;
 import state.waiter.WaiterTakingOrderState;
 import state.waiter.WaiterWaitCookState;
 
 public class RestaurantMediator implements Observer {
-    private List<Waiter> waiters = new ArrayList<>();
-    private List<Chef> chefs = new ArrayList<>();
-    private Restaurant scoreboard = Restaurant.getInstance();
-    private final Queue<Customer> waitingCustomers = new LinkedList<>();
-    private final Queue<Waiter> waitingWaiters = new LinkedList<>();
-    private final Queue<Waiter> idleWaiters = new LinkedList<>();
-    private final Queue<Chef> idleChefs = new LinkedList<>();
-    private final Object pauseLock = new Object();
-    private static final int BASE_REWARD = 30;
-    
-    public Object getPauseLock() {
+	private static final int BASE_REWARD = 30;
+
+	private final List<Waiter> waiters = new ArrayList<>();
+	private final List<Chef> chefs = new ArrayList<>();
+	private final Restaurant scoreboard = Restaurant.getInstance();
+	private final Queue<Customer> waitingCustomers = new LinkedList<>();
+	private final Queue<Waiter> waitingWaiters = new LinkedList<>();
+	private final Queue<Waiter> idleWaiters = new LinkedList<>();
+	private final Queue<Chef> idleChefs = new LinkedList<>();
+	private final Object pauseLock = new Object();
+	private volatile boolean isPaused = false;
+
+	public Object getPauseLock() {
 		return pauseLock;
 	}
 
-	private volatile boolean isPaused = false;
-    
-    public void pauseSimulation() {
-    	setPaused(true);
-    }
-    
-    public void resumeSimulation() {
-    	synchronized (pauseLock) {
+	public void pauseSimulation() {
+		setPaused(true);
+	}
+
+	public void resumeSimulation() {
+		synchronized (pauseLock) {
 			setPaused(false);
 			pauseLock.notifyAll();
 		}
-    }
-    
-    
-    public void addWaiter(Waiter waiter) {
-        this.waiters.add(waiter);
-    }
-
-    public void addChef(Chef chef) {
-        this.chefs.add(chef);
-    }
-    
-    public List<Waiter> getWaiters() {
-    	return waiters;
-    }
-    
-    public List<Chef> getChefs(){
-    	return chefs;
-    }
-    
-    private synchronized void assignWaiterAndCustomer(Waiter waiter, Customer customer) {
-        waiter.setAssignedCustomer(customer);
-        customer.setAssignedWaiter(waiter);
-        
-        waiter.setState(new WaiterTakingOrderState(waiter));
-        customer.setState(new CustomerPlacingOrderState(customer));
-    }
-    
-    private synchronized void assignWaiterAndChef(Waiter waiter, Chef chef) {
-    	waiter.setAssignedChef(chef);
-    	waiter.getAssignedCustomer().setAssignedChef(chef);
-    	
-    	chef.setAssignedCustomer(waiter.getAssignedCustomer());
-    	chef.setAssignedWaiter(waiter);
-    	
-    	waiter.setState(new WaiterBringOrderState(waiter));
-    	waiter.getAssignedCustomer().setState(new CustomerWaitingForFoodState(waiter.getAssignedCustomer()));
-    }
-    
-    @Override
-    public synchronized void update(Object subject, Object event) {
-        handleCustomerEvents(subject, event);
-        handleWaiterEvents(subject, event);
-        handleChefEvents(subject, event);
-    }
-
-	private void handleChefEvents(Object subject, Object event) {
-		if(subject instanceof Chef && event instanceof ChefEvent) {
-        	Chef chef = (Chef) subject;
-        	ChefEvent chefEvent = (ChefEvent) event;
-        	if(chefEvent.getType() == ChefEvent.ChefEventType.IDLE) {
-        		if(!waitingWaiters.isEmpty()) {
-        			Waiter waiter = waitingWaiters.poll();
-        			assignWaiterAndChef(waiter, chef);
-        		} else {
-        			idleChefs.add(chef);
-        		}
-        	} else if (chefEvent.getType() == ChefEvent.ChefEventType.START_COOKING){
-        		chef.getAssignedCustomer().setState(new CustomerFoodBeingCookState(chef.getAssignedCustomer()));
-        	} else if(chefEvent.getType() == ChefEvent.ChefEventType.IS_COOKING) {
-        		
-        	} else if(chefEvent.getType() == ChefEvent.ChefEventType.COOKING_DONE) {
-        		chef.getAssignedWaiter().setState(new WaiterBringFoodState(chef.getAssignedWaiter()));
-        		chef.setState(new ChefIdleState(chef));
-        	}
-        }
 	}
 
-	private void handleWaiterEvents(Object subject, Object event) {
-		if(subject instanceof Waiter && event instanceof WaiterEvent) {
-        	Waiter waiter = (Waiter) subject;
-        	WaiterEvent waiterEvent = (WaiterEvent) event;
-        	if(waiterEvent.getType() == WaiterEvent.WaiterEventType.IDLE) {
-        		if(!waitingCustomers.isEmpty()) {
-        			Customer customer = waitingCustomers.poll();
-            		assignWaiterAndCustomer(waiter, customer);
-        		} else {
-        			idleWaiters.add(waiter);
-        		}
-        
-        	} else if(waiterEvent.getType() == WaiterEvent.WaiterEventType.TAKING_ORDER) {
-        		waiter.setState(new WaiterWaitCookState(waiter));
-        	} else if(waiterEvent.getType() == WaiterEventType.WAITING_FOR_CHEF) {
-        		if(!idleChefs.isEmpty()) {
-        			Chef chef = idleChefs.poll();
-        			assignWaiterAndChef(waiter, chef);
-        		} else {
-        			waitingWaiters.add(waiter);
-        		}
-        	} else if(waiterEvent.getType() == WaiterEvent.WaiterEventType.BRING_ORDER_TO_CHEF) {
-        		waiter.getAssignedChef().setState(new ChefCookState(waiter.getAssignedChef()));
-        	} else if(waiterEvent.getType() == WaiterEvent.WaiterEventType.DELIVERING_FOOD) {
-//        		waiter.setState(new WaiterBringFoodState(waiter));
-        		waiter.getAssignedCustomer().setState(new CustomerFoodBeingServed(waiter.getAssignedCustomer()));
-        	}
-        }
+	public void addWaiter(Waiter waiter) {
+		this.waiters.add(waiter);
 	}
 
-	private void handleCustomerEvents(Object subject, Object event) {
-		if(subject instanceof Customer && event instanceof CustomerEvent) {
-        	Customer customer = (Customer) subject;
-        	CustomerEvent customerEvent = (CustomerEvent) event;
-        	if(customerEvent.getType() == CustomerEvent.CustomerEventType.REQUEST_ORDER) {
-        		if(!idleWaiters.isEmpty()) {
-        			Waiter waiter = idleWaiters.poll();
-        			assignWaiterAndCustomer(waiter, customer);
-        		} else {
-        			waitingCustomers.add(customer);
-        			
-        		}
-        	} else if(customerEvent.getType() == CustomerEvent.CustomerEventType.DONE_EATING) {
-        		// customer leave, implement later
-        		scoreboard.setScore(scoreboard.getScore() + (BASE_REWARD * customer.getAssignedChef().getSkill()));
-        		scoreboard.setMoney(scoreboard.getMoney() + (BASE_REWARD * customer.getAssignedChef().getSkill()));
-        		customer.setStateName("Done");
-        	}
-        }
+	public void addChef(Chef chef) {
+		this.chefs.add(chef);
+	}
+
+	public List<Waiter> getWaiters() {
+		return waiters;
+	}
+
+	public List<Chef> getChefs() {
+		return chefs;
+	}
+
+	@Override
+	public synchronized void update(Object subject, Object event) {
+		if (subject instanceof Customer && event instanceof CustomerEvent) {
+			handleCustomerEvent((Customer) subject, (CustomerEvent) event);
+		} else if (subject instanceof Waiter && event instanceof WaiterEvent) {
+			handleWaiterEvent((Waiter) subject, (WaiterEvent) event);
+		} else if (subject instanceof Chef && event instanceof ChefEvent) {
+			handleChefEvent((Chef) subject, (ChefEvent) event);
+		}
+	}
+
+	private void handleCustomerEvent(Customer customer, CustomerEvent event) {
+		switch (event.getType()) {
+			case REQUEST_ORDER:
+				if (!idleWaiters.isEmpty()) {
+					assignWaiterAndCustomer(idleWaiters.poll(), customer);
+				} else {
+					waitingCustomers.add(customer);
+				}
+				break;
+			case DONE_EATING:
+				int reward = BASE_REWARD * customer.getAssignedChef().getSkill();
+				scoreboard.setScore(scoreboard.getScore() + reward);
+				scoreboard.setMoney(scoreboard.getMoney() + reward);
+				customer.markDone();
+				break;
+			default:
+				break;
+		}
+	}
+
+	private void handleWaiterEvent(Waiter waiter, WaiterEvent event) {
+		switch (event.getType()) {
+			case IDLE:
+				if (!waitingCustomers.isEmpty()) {
+					assignWaiterAndCustomer(waiter, waitingCustomers.poll());
+				} else {
+					idleWaiters.add(waiter);
+				}
+				break;
+			case TAKING_ORDER:
+				waiter.setState(new WaiterWaitCookState(waiter));
+				break;
+			case WAITING_FOR_CHEF:
+				if (!idleChefs.isEmpty()) {
+					assignWaiterAndChef(waiter, idleChefs.poll());
+				} else {
+					waitingWaiters.add(waiter);
+				}
+				break;
+			case BRING_ORDER_TO_CHEF:
+				waiter.getAssignedChef().setState(new ChefCookState(waiter.getAssignedChef()));
+				break;
+			case DELIVERING_FOOD:
+				waiter.getAssignedCustomer().setState(new CustomerFoodBeingServed(waiter.getAssignedCustomer()));
+				break;
+			default:
+				break;
+		}
+	}
+
+	private void handleChefEvent(Chef chef, ChefEvent event) {
+		switch (event.getType()) {
+			case IDLE:
+				if (!waitingWaiters.isEmpty()) {
+					assignWaiterAndChef(waitingWaiters.poll(), chef);
+				} else {
+					idleChefs.add(chef);
+				}
+				break;
+			case START_COOKING:
+				chef.getAssignedCustomer().setState(new CustomerFoodBeingCookState(chef.getAssignedCustomer()));
+				break;
+			case COOKING_DONE:
+				chef.getAssignedWaiter().setState(new WaiterBringFoodState(chef.getAssignedWaiter()));
+				chef.setState(new ChefIdleState(chef));
+				break;
+			default:
+				break;
+		}
+	}
+
+	private synchronized void assignWaiterAndCustomer(Waiter waiter, Customer customer) {
+		waiter.setAssignedCustomer(customer);
+		customer.setAssignedWaiter(waiter);
+
+		waiter.setState(new WaiterTakingOrderState(waiter));
+		customer.setState(new CustomerPlacingOrderState(customer));
+	}
+
+	private synchronized void assignWaiterAndChef(Waiter waiter, Chef chef) {
+		waiter.setAssignedChef(chef);
+		waiter.getAssignedCustomer().setAssignedChef(chef);
+
+		chef.setAssignedCustomer(waiter.getAssignedCustomer());
+		chef.setAssignedWaiter(waiter);
+
+		waiter.setState(new WaiterBringOrderState(waiter));
+		waiter.getAssignedCustomer().setState(new CustomerWaitingForFoodState(waiter.getAssignedCustomer()));
 	}
 
 	public boolean isPaused() {
