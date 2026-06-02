@@ -1,84 +1,38 @@
 package model;
 
 import mediator.RestaurantMediator;
-import observer.event.ChefEvent;
-import state.chef.ChefCookDoneState;
-import state.chef.ChefCookState;
 import state.chef.ChefIdleState;
 import state.chef.ChefState;
 
 public class Chef extends Npc {
+	private static final int INITIAL_SPEED = 0;
+	private static final int INITIAL_SKILL = 1;
+
 	private String name;
 	private String currentAction;
 	private int skill;
 	private int speed;
 	private ChefState state;
-	private String stateName;
 	private Customer assignedCustomer;
 	private Waiter assignedWaiter;
-	private Order assignedOrder;
-	private RestaurantMediator mediator;
+	private final RestaurantMediator mediator;
 
 	public Chef(String name, RestaurantMediator mediator) {
 		this.name = name;
-		this.speed = 0;
-		this.skill = 1;
-		this.setMediator(mediator);
+		this.speed = INITIAL_SPEED;
+		this.skill = INITIAL_SKILL;
+		this.mediator = mediator;
 		this.state = new ChefIdleState(this);
 		this.registerObserver(mediator);
 	}
 
 	@Override
 	protected void handleCurrentState() {
-		if(this.state instanceof ChefIdleState) {
-			notifyObserver(new ChefEvent(ChefEvent.ChefEventType.IDLE, getAssignedOrder()));
-			while(this.state instanceof ChefIdleState) {
-				try {
-					Thread.sleep(100);
-				} catch(InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		} else if(this.state instanceof ChefCookState) {
-			notifyObserver(new ChefEvent(ChefEvent.ChefEventType.START_COOKING, getAssignedOrder()));
-			int duration = 6 - this.getSpeed();
-			duration = duration * 1000;
-			try {
-				Thread.sleep(duration);
-			} catch(InterruptedException e) {
-				e.printStackTrace();
-			}
-			notifyObserver(new ChefEvent(ChefEvent.ChefEventType.COOKING_DONE, getAssignedOrder()));
-			while(this.state instanceof ChefCookState) {
-				try {
-					Thread.sleep(100);
-				} catch(InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		} else if(this.state instanceof ChefCookDoneState) {
-			while(this.state instanceof ChefCookDoneState) {
-				try {
-					Thread.sleep(100);
-				} catch(InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-
-	public void cookOrder(Order order) {
-		this.setAssignedOrder(order);
-		setAssignedCustomer(order.getCustomer());
-		this.setState(new ChefCookState(this));
+		state.handle(this);
 	}
 
 	public String getName() {
 		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
 	}
 
 	public ChefState getState() {
@@ -87,14 +41,6 @@ public class Chef extends Npc {
 
 	public void setState(ChefState state) {
 		this.state = state;
-	}
-
-	public String getStateName() {
-		return stateName;
-	}
-
-	public void setStateName(String stateName) {
-		this.stateName = stateName;
 	}
 
 	public Customer getAssignedCustomer() {
@@ -113,14 +59,6 @@ public class Chef extends Npc {
 		this.assignedWaiter = assignedWaiter;
 	}
 
-	public Order getAssignedOrder() {
-		return assignedOrder;
-	}
-
-	public void setAssignedOrder(Order assignedOrder) {
-		this.assignedOrder = assignedOrder;
-	}
-
 	public String getCurrentAction() {
 		return currentAction;
 	}
@@ -131,10 +69,6 @@ public class Chef extends Npc {
 
 	public RestaurantMediator getMediator() {
 		return mediator;
-	}
-
-	public void setMediator(RestaurantMediator mediator) {
-		this.mediator = mediator;
 	}
 
 	public int getSkill() {

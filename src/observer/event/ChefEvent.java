@@ -1,28 +1,19 @@
 package observer.event;
 
-import model.Order;
-
 public class ChefEvent {
-    public enum ChefEventType {
-        IDLE,
-        START_COOKING,
-        IS_COOKING,
-        COOKING_DONE
-    }
+	public enum ChefEventType {
+		IDLE,
+		START_COOKING,
+		COOKING_DONE
+	}
 
-    private final ChefEventType type;
-    private final Order order;
+	private final ChefEventType type;
 
-    public ChefEvent(ChefEventType type, Order order) {
-        this.type = type;
-        this.order = order;
-    }
+	public ChefEvent(ChefEventType type) {
+		this.type = type;
+	}
 
-    public ChefEventType getType() {
-        return type;
-    }
-
-    public Order getOrder() {
-        return order;
-    }
+	public ChefEventType getType() {
+		return type;
+	}
 }

@@ -5,8 +5,8 @@ import model.Chef;
 import model.Npc;
 
 public class ChefFactory extends BaseFactory {
-    @Override
-    public Npc createNpc(RestaurantMediator mediator) {
-        return new Chef(getRandomName(), mediator);
-    }
+	@Override
+	public Npc createNpc(RestaurantMediator mediator) {
+		return new Chef(getRandomName(), mediator);
+	}
 }

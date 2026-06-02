@@ -36,11 +36,6 @@ public abstract class Npc implements Subject, Runnable {
 	}
 
 	@Override
-	public final void removeObserver(Observer o) {
-		observers.remove(o);
-	}
-
-	@Override
 	public final void notifyObserver(Object event) {
 		for (Observer observer : observers) {
 			observer.update(this, event);

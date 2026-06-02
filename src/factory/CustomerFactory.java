@@ -1,12 +1,12 @@
 package factory;
 
 import mediator.RestaurantMediator;
-import model.Chef;
+import model.Customer;
 import model.Npc;
 
-public class CustomerFactory extends BaseFactory{
+public class CustomerFactory extends BaseFactory {
 	@Override
-    public Npc createNpc(RestaurantMediator mediator) {
-        return new Chef(getRandomName(), mediator);
-    }
+	public Npc createNpc(RestaurantMediator mediator) {
+		return new Customer(getRandomName(), mediator);
+	}
 }
