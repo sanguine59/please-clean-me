@@ -14,6 +14,10 @@ public class Main {
 	private final GameFacade game = new GameFacade(this);
 	private final Scanner scan = new Scanner(System.in);
 
+	public static void main(String[] args) {
+		new Main();
+	}
+	
 	public Main() {
 		mainMenu();
 	}
